@@ -23,7 +23,8 @@
  *
  *  --------------------------------------------------------------------------
  *
- *  Version 2.0.0 (12/22/2016)
+ *  Version 2.0.1 (01/04/2020)
+ *  Collaborators: Juvenal Guzman (juvs)
  */
 
 import groovy.json.JsonSlurper
@@ -31,11 +32,14 @@ import groovy.json.JsonSlurper
 preferences {
     // NOTE: Android client does not accept "defaultValue" attribute!
     input("confIpAddr", "string", title:"VLC IP Address",
-        required:true, displayDuringSetup:true)
+          required:true, displayDuringSetup:true)
     input("confTcpPort", "number", title:"VLC TCP Port",
-        required:true, displayDuringSetup:true)
+          required:true, displayDuringSetup:true)
     input("confPassword", "password", title:"VLC Password",
-        required:false, displayDuringSetup:true)
+          required:false, displayDuringSetup:true)
+    input("voice", "enum", title:"Define the voice as TTS",
+          required:true, displayDuringSetup:true,  
+          options:["Penélope (F)(es-US)", "Miguel (M)(es-US)", "Raveena (F)(en-IN)", "Ivy (F)(en-US)", "Joanna (F)(en-US)", "Joey (M)(en-US)", "Justin (M)(en-US)", "Kendra (F)(en-US)", "Kimberly (F)(en-US)", "Salli (F)(en-US)"])
 }
 
 metadata {
@@ -150,6 +154,11 @@ def updated() {
     if (!port) {
 	    log.warn "Using default TCP port 8080!"
         port = 8080
+    }
+    
+    if (!settings.voice) {
+	    log.warn "Voice not set!"
+        return
     }
 
     def dni = createDNI(settings.confIpAddr, port)
@@ -468,7 +477,7 @@ def playSoundAndTrack(uri, duration, trackData, volume = null) {
 
 def testTTS() {
     //log.debug "testTTS()"
-    def text = "VLC for Smart Things is brought to you by Statusbits.com"
+    def text = getTestText(getLanguage(settings.voice))
     return playTextAndResume(text)
 }
 
@@ -630,9 +639,63 @@ private def parseTrackInfo(events, Map info) {
 }
 
 private def myTextToSpeech(text) {
-    def sound = textToSpeech(text, true)
+    def sound = textToSpeech(text, true, getVoiceTTS(settings.voice))
     sound.uri = sound.uri.replace('https:', 'http:')
     return sound
+}
+
+private def getVoiceTTS(voice) {
+	log.debug "Selected voice : ${voice}"
+	switch (voice) {
+    	case "Penélope (F)(es-US)": return "penelope"
+    	case "Miguel (M)(es-US)": return "miguel"
+        case "Raveena (F)(en-IN)": return "raveena"
+    	case "Ivy (F)(en-US)": return "ivy"
+        case "Joanna (F)(en-US)": return "joanna"
+        case "Joey (M)(en-US)": return "joey"
+        case "Justin (M)(en-US)": return "justin"
+        case "Kendra (F)(en-US)": return "kendra"
+        case "Kimberly (F)(en-US)": return "kimberly"
+        case "Salli (F)(en-US)": return "salli"  
+    	default: 
+        	return "joanna"
+    }
+}
+
+private def getLanguage(voice) {
+	log.debug "Selected voice : ${voice}"
+	switch (voice) {
+    	case "Ivy (F)(en-US)":
+        case "Joanna (F)(en-US)":
+        case "Joey (M)(en-US)":
+        case "Justin (M)(en-US)":
+        case "Kendra (F)(en-US)":
+        case "Kimberly (F)(en-US)":
+        case "Salli (F)(en-US)":
+        	return "en-US"
+        case "Raveena (F)(en-IN)":
+        	return "en-IN"            
+    	case "Penélope (F)(es-US)": 
+    	case "Miguel (M)(es-US)": 
+        	return "es-US"
+    	default: 
+        	return "en-US"
+    }
+}
+
+private def getTestText(language) {
+	log.debug "Selected language : ${language}"
+	switch (language) {
+    	case "es-US": 
+        	return "Esta es una prueba de sonido 1,2,3"
+    	case "en-US": 
+        case "en-AU":
+        case "en-GB":
+        case "en-IN":
+        	return "This is a sound test 1,2,3"
+    	default: 
+        	return "This is a sound test 1,2,3"
+    }
 }
 
 private String createDNI(ipaddr, port) {
